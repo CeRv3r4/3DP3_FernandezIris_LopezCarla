@@ -9,8 +9,9 @@ public class MarioController : MonoBehaviour
     Animator m_Animator;
     public float m_WalkSpeed = 4.0f;
     public float m_RunSpeed = 8.0f;
-
-
+    public float m_RotationLerpPct = 10.0f;
+    public float m_JumpSpeed = 0.0f;
+    float m_VerticalSpeed = 0.0f;
 
     [Header("Input")]
     public Key m_RightKeyControl = Key.D;
@@ -18,10 +19,7 @@ public class MarioController : MonoBehaviour
     public Key m_ForwardKeyControl = Key.W;
     public Key m_BackwardKeyControl = Key.S;
     public Key m_RunKeyControl = Key.LeftShift;
-
-
-
-
+    public Key m_JumpKeyControl = Key.Space;
 
 
 
@@ -72,6 +70,8 @@ public class MarioController : MonoBehaviour
         bool l_IsMoving = l_Direction.sqrMagnitude > 0.5f;
         float l_AnimatorSpeed = 0.0f;
         float l_Speed = m_WalkSpeed;
+        l_Direction.Normalize();
+        
 
         if (l_IsMoving)
         {
@@ -86,13 +86,28 @@ public class MarioController : MonoBehaviour
                 l_AnimatorSpeed = 0.3f;
 
             }
+
+            Quaternion l_DesiredRotation = Quaternion.LookRotation(l_Direction);
+            transform.rotation = Quaternion.Lerp(transform.rotation, l_DesiredRotation, m_RotationLerpPct * Time.deltaTime);
+        }
+
+        if (Keyboard.current[m_JumpKeyControl].wasPressedThisFrame)
+        {
+            m_VerticalSpeed = m_JumpSpeed;
+
         }
 
         m_Animator.SetFloat("Speed", l_AnimatorSpeed);
-        l_Direction.Normalize();
-
-
         l_Direction *= l_Speed * Time.deltaTime;
+
+
+        m_VerticalSpeed += Physics.gravity.y * Time.deltaTime;
+        CollisionFlags l_CollisionFlags = m_CharacterController.Move(l_Direction);
+
+        if(((l_CollisionFlags & CollisionFlags.Below) != 0) || (l_CollisionFlags & CollisionFlags.Above) != 0  && m_VerticalSpeed == 0.0f){
+            m_VerticalSpeed = 0.0f;
+        }
+
         m_CharacterController.Move(l_Direction);
     }
 
